@@ -7,12 +7,12 @@ display.setStatusBar( display.HiddenStatusBar )
 local physics = require("physics")
 physics.start( )
 physics.setGravity(0, 0)
-physics.setDrawMode( "hybrid" )
+physics.setDrawMode( "normal" )
 
 local ancho = display.contentWidth
 local alto = display.contentHeight
 
-local velocity  = 40
+local velocity  = 50
 local score = 0
 ------------------
 --backgrounds-----------------
@@ -63,13 +63,19 @@ character.y = alto / 2
 character:setFillColor( 1,0.2,0 )
 physics.addBody( character, {density=0.3, friction=0.3, bounce=0.3,radius = 50} )
 character.type = "character"
-character.collision = onCollision
-character:addEventListener( "collision", character )
+
 
 local scoreText = display.newText("Score: "..score,0,0, native.systemFontBold,60 )
 scoreText.x = ancho / 2
 scoreText.y = alto - 50
 scoreText:setFillColor( 0,1,0 )
+
+local gameOver = display.newRect(0,0,ancho,alto)
+gameOver.x = ancho / 2
+gameOver.y = alto / 2
+gameOver:setFillColor( 0,0,0 )
+gameOver.alpha = 0.5
+gameOver.isVisible = false
 
 --function moverCharacter(event)
 --		physics.setGravity(10 * event.xGravity,-10 * event.yGravity)
@@ -144,16 +150,49 @@ function loopGame(event)
 	return true
 end
 
-function onCollision(self, event)
+function reStart( event )
 	if event.phase == "began" then
-		if event.target.type == "character" and event.other.type == "enemy" then
-		print("choque ")
-		end
+		start()
 	end
 	return true
 end
 
-timer.performWithDelay( 200, addEnemy, 0 )
-Runtime:addEventListener( "touch", moveCharacter)
-Runtime:addEventListener( "enterFrame", loopGame )
+function onCollision(event)
+	if event.phase == "began" then
+		Runtime:removeEventListener( "enterFrame", loopGame )
+		Runtime:removeEventListener( "touch", moveCharacter )
+		character:removeEventListener( "collision", onCollision )
+		timer.cancel( enemiesTimer )
+		gameOver.isVisible = true
+		gameOver:addEventListener( "touch", reStart )
+		i = -1
+		while i <= enemies.numChildren do
+			enemies:remove(enemies[i])
+			enemies[i] = nil
+			i = i + 1
+			print(enemies.numChildren)
+		end
+		print("choque")
+		c = 1	
+	end
+	return true
+end
+
+function start(event)
+	if c ==1 then
+		gameOver.isVisible = false
+		gameOver:removeEventListener( "touch", reStart )
+	end
+	c = 0
+	score = 0
+	character.y = ancho / 2
+	scoreText.text = "Score: "..score
+	Runtime:addEventListener( "enterFrame", loopGame )
+	Runtime:addEventListener( "touch", moveCharacter)
+	character:addEventListener( "collision", onCollision )
+	enemiesTimer  = timer.performWithDelay( 200, addEnemy, 0 )
+	return true
+end
+
+start()
 --Runtime:addEventListener( "accelerometer", moveCharacter )
