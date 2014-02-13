@@ -1,6 +1,6 @@
 display.setStatusBar( display.HiddenStatusBar )
 
---ultimote = require "Ultimote";ultimote.connect();
+--ultimote = require "Ultimote";
 --ultimote.connect() 
 --ultimote.autoScreenCapture()
 
@@ -12,7 +12,7 @@ physics.setDrawMode( "normal" )
 local ancho = display.contentWidth
 local alto = display.contentHeight
 
-local velocity  = 50
+local velocity  = 40
 local score = 0
 ------------------
 --backgrounds-----------------
@@ -70,12 +70,25 @@ scoreText.x = ancho / 2
 scoreText.y = alto - 50
 scoreText:setFillColor( 0,1,0 )
 
+
+
 local gameOver = display.newRect(0,0,ancho,alto)
 gameOver.x = ancho / 2
 gameOver.y = alto / 2
-gameOver:setFillColor( 0,0,0 )
-gameOver.alpha = 0.5
-gameOver.isVisible = false
+gameOver:setFillColor( 1,0.5,0 )
+gameOver.alpha = 0
+
+local finalScoreText = display.newText("Your Score: "..score,0,0, native.systemFontBold,80 )
+finalScoreText.x = ancho / 2
+finalScoreText.y = alto / 2
+finalScoreText:setFillColor( 0,1,0.1 )
+finalScoreText.alpha = 0
+
+local finalText = display.newText("Tap for replay ",0,0, native.systemFontBold,80 )
+finalText.x = ancho / 2
+finalText.y = alto - 150
+finalText:setFillColor( 0,0.1,0 )
+finalText.alpha = 0
 
 --function moverCharacter(event)
 --		physics.setGravity(10 * event.xGravity,-10 * event.yGravity)
@@ -152,7 +165,20 @@ end
 
 function reStart( event )
 	if event.phase == "began" then
-		start()
+		timer.performWithDelay( 500, start, 1)
+		transition.to( finalScoreText, { alpha = 0, time = 200 }  )
+		transition.to( finalText, { alpha = 0, time = 200 }  )
+		transition.to( gameOver, { alpha = 0, time = 200 }  )
+		gameOver:removeEventListener( "touch", reStart )
+		if enemies.numChildren > 0 then
+		i = 0
+			while i <= enemies.numChildren do
+				enemies:remove(enemies[i])
+				enemies[i] = nil 
+				i = i + 1
+			end
+		end
+		character.y = ancho / 2 - 200
 	end
 	return true
 end
@@ -162,37 +188,36 @@ function onCollision(event)
 		Runtime:removeEventListener( "enterFrame", loopGame )
 		Runtime:removeEventListener( "touch", moveCharacter )
 		character:removeEventListener( "collision", onCollision )
+
 		timer.cancel( enemiesTimer )
-		gameOver.isVisible = true
+
+		finalScoreText.text = "Score: "..score 
+		transition.to( finalScoreText, { alpha = 1, time = 200 }  )
+		transition.to( finalText, { alpha = 1, time = 200 }  )
+		transition.to( gameOver, { alpha = 1, time = 200 }  )
 		gameOver:addEventListener( "touch", reStart )
-		i = -1
+
+		i = 0
 		while i <= enemies.numChildren do
 			enemies:remove(enemies[i])
 			enemies[i] = nil
 			i = i + 1
-			print(enemies.numChildren)
 		end
-		print("choque")
-		c = 1	
+
 	end
 	return true
 end
 
 function start(event)
-	if c ==1 then
-		gameOver.isVisible = false
-		gameOver:removeEventListener( "touch", reStart )
-	end
-	c = 0
+
 	score = 0
-	character.y = ancho / 2
 	scoreText.text = "Score: "..score
 	Runtime:addEventListener( "enterFrame", loopGame )
 	Runtime:addEventListener( "touch", moveCharacter)
 	character:addEventListener( "collision", onCollision )
-	enemiesTimer  = timer.performWithDelay( 200, addEnemy, 0 )
+	enemiesTimer  = timer.performWithDelay( 100, addEnemy, 0 )
 	return true
 end
 
-start()
+timer.performWithDelay( 1000, start,1)
 --Runtime:addEventListener( "accelerometer", moveCharacter )
