@@ -1,6 +1,6 @@
 display.setStatusBar( display.HiddenStatusBar )
 
---ultimote = require "Ultimote";
+--10-ultimote = require "Ultimote";
 --ultimote.connect() 
 --ultimote.autoScreenCapture()
 
@@ -12,19 +12,25 @@ physics.setDrawMode( "normal" )
 local ancho = display.contentWidth
 local alto = display.contentHeight
 
-local velocity  = 40
+local velocity  = 70
 local score = 0
 ------------------
 --backgrounds-----------------
 -----------------------------
+soundTrack = audio.loadStream("Soundtrack.mp3")
+local backgroundMusicChannel = audio.play( soundTrack, { channel=1, loops=-1, fadein=100 }  )
+audio.setVolume( 0.5 )
 
-local background1 = display.newImageRect("back/background.jpg",ancho,alto)
+local tap = audio.loadSound("back/pressB.mp3")
+local background1 = display.newRect(0,0,ancho,alto)
 background1.x = ancho / 2
 background1.y = alto  / 2
+background1:setFillColor( 1,1,1 )
 
-local background2 = display.newImageRect("back/background.jpg",ancho,alto)
-background2.x = -ancho /2
+local background2 = display.newRect(0,0,ancho,alto)
+background2.x = ancho / 2
 background2.y = alto  / 2
+background2:setFillColor( 1,1,1)
 
 ------------------------------------------------------
 -----------------------Limites-------------
@@ -57,10 +63,9 @@ physics.addBody( izquierda, "static",{density=0.3, friction=0.3, bounce=0.3} )
 -----------------------Limites-------------
 --------------------------------------------
 
-local character = display.newCircle( 0, 0, 50 )
+local character = display.newImageRect( "back/character.png",80,80)
 character.x = ancho - 160
 character.y = alto / 2
-character:setFillColor( 1,0.2,0 )
 physics.addBody( character, {density=0.3, friction=0.3, bounce=0.3,radius = 50} )
 character.type = "character"
 
@@ -97,24 +102,28 @@ finalText.alpha = 0
 --end
 
 function moveCharacter(event)
-	if event.phase == "began" then
-		character.isFocus = true
-	elseif event.phase == "moved" then
-		eventY = event.y 
-		character.y = eventY 
-	elseif event.phase == "ended" then
-		character.isFocus = false
-	end
+    if "began" == event.phase then
+        character.isFocus = true
+
+        character.y0 = event.y - character.y
+    elseif character.isFocus then
+        if "moved" == event.phase then
+            character.y = event.y - character.y0
+        elseif "ended" == phase or "cancelled" == phase then
+            character.isFocus = false
+        end
+    end
+
+    -- Return true if the touch event has been handled.
 	return true
 end
 
  
 function addEnemy(event)
-	local enemy = display.newRect( 0, 0, 70, 70 )
+	local enemy = display.newImageRect( "back/enemy.png", 50, 50 )
 	enemy.x = 50
 	enemy.y = math.random(10, alto)
 	enemy.name = "enemy"
-	enemy:setFillColor( 0,0,1 )
 	physics.addBody( enemy , {density=0.3, friction=0.3, bounce=0.3 } )
 	enemy.isSensor = true	
 	enemies:insert(enemy)
@@ -165,6 +174,7 @@ end
 
 function reStart( event )
 	if event.phase == "began" then
+		audio.play( tap  )
 		timer.performWithDelay( 500, start, 1)
 		transition.to( finalScoreText, { alpha = 0, time = 200 }  )
 		transition.to( finalText, { alpha = 0, time = 200 }  )
@@ -188,6 +198,8 @@ function onCollision(event)
 		Runtime:removeEventListener( "enterFrame", loopGame )
 		Runtime:removeEventListener( "touch", moveCharacter )
 		character:removeEventListener( "collision", onCollision )
+
+		audio.play( tap  )
 
 		timer.cancel( enemiesTimer )
 
@@ -215,7 +227,7 @@ function start(event)
 	Runtime:addEventListener( "enterFrame", loopGame )
 	Runtime:addEventListener( "touch", moveCharacter)
 	character:addEventListener( "collision", onCollision )
-	enemiesTimer  = timer.performWithDelay( 100, addEnemy, 0 )
+	enemiesTimer  = timer.performWithDelay(80, addEnemy, 0 )
 	return true
 end
 
